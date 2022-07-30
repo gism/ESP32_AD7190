@@ -99,6 +99,10 @@ void sendAd7190Data(char* toSendData) {
 
 }
 
+
+bool ledStatus = false;
+
+
 void taskFetchAd7190Data( void *pvParameters ) {
 
 #ifdef AD7190_DEBUG
@@ -120,10 +124,17 @@ void taskFetchAd7190Data( void *pvParameters ) {
 
   // AD7190_setRegisterValue(SPIClass *spi, unsigned char registerAddress, uint32_t registerValue, unsigned char bytesNumber) {
 
-    uint32_t regConfigSettings = (AD7190_CONF_CHAN(AD7190_CH_AIN3P_AIN4M) | AD7190_CONF_GAIN(AD7190_CONF_GAIN_1));   
+    uint8_t regGPIOSettings = AD7190_GPOCON_GP32EN;         //  Set excitation source  (P3 to low is 5V exitation on)
+    
+    // Make LED to blink
+    if(ledStatus) regGPIOSettings = regGPIOSettings | AD7190_GPOCON_P2DAT;
+    ledStatus = !ledStatus;
+    AD7190_setRegisterValue(ad7190, AD7190_REG_GPOCON, regGPIOSettings, 1);
+
+    uint32_t regConfigSettings = (AD7190_CONF_CHAN(AD7190_CH_AIN3P_AIN4M) | AD7190_CONF_GAIN(AD7190_CONF_GAIN_128) | AD7190_CONF_BUF);   
     AD7190_setRegisterValue(ad7190, AD7190_REG_CONF, regConfigSettings, 3);
 
-    uint32_t regModeSettings = (AD7190_MODE_SEL(AD7190_MODE_CONT) | AD7190_MODE_CLKSRC(AD7190_CLK_INT) | AD7190_MODE_RATE(AD7190_FILTER_RATE_80));
+    uint32_t regModeSettings = (AD7190_MODE_SEL(AD7190_MODE_SINGLE) | AD7190_MODE_CLKSRC(AD7190_CLK_INT) | AD7190_MODE_RATE(AD7190_FILTER_RATE_80));
     AD7190_setRegisterValue(ad7190, AD7190_REG_MODE, regModeSettings, 3);
 
     AD7190_waitMisoGoLow();
@@ -175,11 +186,13 @@ boolean AD7190_getData(SPIClass *spi) {
   }
   
   uint32_t rawRead = AD7190_readAvg(spi, 1);
-  int32_t temp = rawRead - AD7190_rawZero;
-  
-  float weight = temp * 1000.0 / AD7190_rawFactor;
+
+  AD7190_rawZero = 0x7FD90;
+  //int32_t temp = rawRead - 0x80000;                        // 
+  int32_t t = rawRead - AD7190_rawZero;
+  float weight = t / AD7190_rawFactor;
     
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_2
     Serial.print("ts: ");
     Serial.print(millis());             // Print time stamp
     
@@ -318,7 +331,7 @@ uint8_t AD7190_readStatus(SPIClass *spi) {
 
 #ifdef AD7190_DEBUG
 
-  bool rdy =        !(retValue & 0x80) >> 7;
+  bool rdy =        !((retValue & 0x80) >> 7);
   bool err =        (retValue & 0x40) >> 6;
   bool noref =      (retValue & 0x20) >> 5;
   bool parity =     (retValue & 0x10) >> 4;

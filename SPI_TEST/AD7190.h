@@ -1,5 +1,6 @@
 
-#define AD7190_DEBUG
+// #define AD7190_DEBUG
+#define AD7190_DEBUG_2
 
 static const int AD7190_SPI_CLK = 10000;   // SE TIENE QUE CAMBIAR A 1000000 // 10 MHz  
 static SPISettings AD7190_SPI_SETTINGS(AD7190_SPI_CLK, MSBFIRST, SPI_MODE3);
@@ -95,3 +96,12 @@ static SPISettings AD7190_SPI_SETTINGS(AD7190_SPI_CLK, MSBFIRST, SPI_MODE3);
 /* ID Register Bit Designations (AD7190_REG_ID) */
 #define ID_AD7190               0x4
 #define AD7190_ID_MASK          0x07
+
+/* GPOCON Register Bit Designations (AD7190_REG_GPOCON) */
+#define AD7190_GPOCON_BPDSW     (1 << 6) // Bridge power-down switch enable
+#define AD7190_GPOCON_GP32EN    (1 << 5) // Digital Output P3 and P2 enable
+#define AD7190_GPOCON_GP10EN    (1 << 4) // Digital Output P1 and P0 enable
+#define AD7190_GPOCON_P3DAT     (1 << 3) // P3 state
+#define AD7190_GPOCON_P2DAT     (1 << 2) // P2 state
+#define AD7190_GPOCON_P1DAT     (1 << 1) // P1 state
+#define AD7190_GPOCON_P0DAT     (1 << 0) // P0 state
