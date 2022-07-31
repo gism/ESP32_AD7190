@@ -1,7 +1,6 @@
 #include <SPI.h>
 #include "AD7190.h"
-
-static const int SPI_CLK = 1000000;           // 1 MHz
+           
 #define SPI_MISO 12
 
 SPIClass * ad7190 = NULL;       // Uninitalised pointer to SPI objects
@@ -11,6 +10,12 @@ SPIClass * ad7190 = NULL;       // Uninitalised pointer to SPI objects
 static QueueHandle_t AD7190_spiQueue = NULL;
 
 #define SAMPLE_DELAY_INTERVAL     1
+
+
+
+
+AD7190* ad7190_myClass = NULL;
+
 
 void setup() {
   Serial.begin(115200);
@@ -23,6 +28,11 @@ void setup() {
   AD7190_readTemperature(ad7190);
   
   AD7190_initTasks();
+
+
+
+  //AD7190 ad7190_myClass(ad7190, "holaJulay!");
+  ad7190_myClass = new AD7190(ad7190, "holaJulay!");
 
 }
 
@@ -53,7 +63,7 @@ void AD7190_initTasks() {
     NULL,                                         /* Task handle. */
     0);                                           /* Core where the task should run */
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
   Serial.println(F("Task created: taskProcessAd7190Data"));
 #endif
 
@@ -66,7 +76,7 @@ void AD7190_initTasks() {
     NULL,                                         /* Task handle. */
     0);                                           /* Core where the task should run */
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
   Serial.print(F("Task created: taskProcessAd7190Data"));
 #endif
 
@@ -74,7 +84,7 @@ void AD7190_initTasks() {
 
 void taskProcessAd7190Data( void *pvParameters ) {
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
   Serial.println(F("Task Started: taskProcessAd7190Data"));
 #endif
   
@@ -105,7 +115,7 @@ bool ledStatus = false;
 
 void taskFetchAd7190Data( void *pvParameters ) {
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
   Serial.println(F("Task Started: taskFetchAd7190Data"));
 #endif
 
@@ -142,7 +152,7 @@ void taskFetchAd7190Data( void *pvParameters ) {
     if (AD7190_getData(ad7190)) {
       ++sampleCount;
 
-    #ifdef AD7190_DEBUG
+    #ifdef AD7190_DEBUG_CALLS
       if (sampleCount % 1000 == 0) {
         Serial.print("AD7190 sample count: ");
         Serial.println(sampleCount);
@@ -176,7 +186,7 @@ boolean AD7190_getData(SPIClass *spi) {
   uint8_t adStatus = AD7190_readStatus(spi);
   if ((adStatus & 0x80) == 0x80) {
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
   Serial.print(F("AD7190 Status not ready. Status: "));
   Serial.println(adStatus, HEX);
 #endif
@@ -187,12 +197,13 @@ boolean AD7190_getData(SPIClass *spi) {
   
   uint32_t rawRead = AD7190_readAvg(spi, 1);
 
-  AD7190_rawZero = 0x7FD90;
+  AD7190_rawZero = 0x7FD9F;
   //int32_t temp = rawRead - 0x80000;                        // 
   int32_t t = rawRead - AD7190_rawZero;
-  float weight = t / AD7190_rawFactor;
+  //float weight = t / AD7190_rawFactor;
+  int32_t weight = t;
     
-#ifdef AD7190_DEBUG_2
+#ifdef AD7190_DEBUG_VERBOSE
     Serial.print("ts: ");
     Serial.print(millis());             // Print time stamp
     
@@ -207,6 +218,8 @@ boolean AD7190_getData(SPIClass *spi) {
     Serial.print("(g)");                //  Print wheight
     Serial.println();
 #endif
+
+  Serial.println(weight);
 
   //AD7190_queueData(spi, weight);
 
@@ -298,7 +311,7 @@ void AD7190_reset(SPIClass *spi){
   //  should allow a period of 500 µs before addressing the serial
   //  interface.
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
   Serial.println("AD7190 reset");
   delay(10);                              // To be removed
 #endif
@@ -322,14 +335,14 @@ void AD7190_reset(SPIClass *spi){
 
 uint8_t AD7190_readStatus(SPIClass *spi) {
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
   Serial.println("AD7190_readStatus()");
 #endif
   
   uint32_t retValue = AD7190_getRegisterValue(spi, AD7190_REG_STAT, 1);
   uint8_t ad7190Status = (uint8_t)(retValue & 0xFF);
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
 
   bool rdy =        !((retValue & 0x80) >> 7);
   bool err =        (retValue & 0x40) >> 6;
@@ -394,7 +407,7 @@ float AD7190_readTemperature(SPIClass *spi) {
   
   dataRegReturned = AD7190_getSingleConversion(spi);
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
   Serial.print("Temp dataReg: ");
   Serial.println(dataRegReturned);
 #endif
@@ -403,7 +416,7 @@ float AD7190_readTemperature(SPIClass *spi) {
   temperature /= 2815;            // Kelvin Temperature
   temperature -= 273;             //Celsius Temperature
   
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
   Serial.print("Temp: ");
   Serial.println(temperature);
 #endif
@@ -414,7 +427,7 @@ float AD7190_readTemperature(SPIClass *spi) {
 // Buffer is set to 1
 void AD7190_setPolarityRangeBuff(SPIClass *spi, uint8_t polarity, uint8_t range, uint8_t buff) {
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
     Serial.print("AD7190_rangeSetup. Polarity: ");
     Serial.print(polarity);
     Serial.print(", Range: ");
@@ -435,7 +448,7 @@ void AD7190_setPolarityRangeBuff(SPIClass *spi, uint8_t polarity, uint8_t range,
 
 void AD7190_setChannel(SPIClass *spi, unsigned short channel){
   
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
     Serial.print("AD7190_setChannel, ");
     Serial.println(channel);
 #endif
@@ -456,7 +469,7 @@ void AD7190_setChannel(SPIClass *spi, unsigned short channel){
 
 uint32_t AD7190_getSingleConversion(SPIClass *spi) {
   
-  #ifdef AD7190_DEBUG
+  #ifdef AD7190_DEBUG_CALLS
     Serial.println("AD7190_singleConversion");
   #endif
   
@@ -484,12 +497,11 @@ bool AD7190_waitMisoGoLow(void) {
   //  ensure that a data read is not attempted while the register is being
   //  updated. 
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
   Serial.println(F("AD7190_waitMisoGoLow()"));
 #endif
 
-  // uint32_t timeOutMilis = 0xFFFFF;       // 1.048.575 ms (17 min)
-  uint32_t timeOutMilis = 3000;             // 3 s
+  uint32_t timeOutMilis = AD7190_DOUT_TIMEOUT;
   uint8_t rdyPin = digitalRead(SPI_MISO);
   
   while (rdyPin && timeOutMilis) {
@@ -498,7 +510,7 @@ bool AD7190_waitMisoGoLow(void) {
     timeOutMilis--;
   }
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
   if (!timeOutMilis) {
     Serial.println(F("Timeout: AD7190_waitMisoGoLow()"));
   }
@@ -513,7 +525,7 @@ bool AD7190_waitMisoGoLow(void) {
   return true;
 }
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
 char*  AD7190_getAddressDebugString(uint8_t a){
 
   bool writeEnable =    (a & 0x80) >> 7;
@@ -603,7 +615,7 @@ uint32_t AD7190_getRegisterValue(SPIClass *spi, byte registerAddress, uint8_t by
 
   uint8_t address = AD7190_COMM_READ | AD7190_COMM_ADDR(registerAddress);
 
-#ifdef AD7190_DEBUG
+#ifdef AD7190_DEBUG_CALLS
   uint8_t responseBytes = bytesNumber;
   
   Serial.print("AD7190_GetRegisterValue Add: 0x");
@@ -632,7 +644,7 @@ uint32_t AD7190_getRegisterValue(SPIClass *spi, byte registerAddress, uint8_t by
   digitalWrite(spi->pinSS(), HIGH); // Pull SS pin HIGH to signify end of data transfer
   spi->endTransaction();
 
-#ifdef AD7190_DEBUG                                   // This block is printing on Serial:
+#ifdef AD7190_DEBUG_CALLS                                   // This block is printing on Serial:
   uint8_t b = 0;                                      // a string like: AD7190_Response:  [2|0xHH]  [1|0xHH]  [0|0xHH]
   Serial.print("AD7190_Response: ");                  // this is only for debuging
   for (int8_t i = responseBytes-1; i >= 0; i--) {    
@@ -658,7 +670,7 @@ void AD7190_setRegisterValue(SPIClass *spi, unsigned char registerAddress, uint3
     bytesNr --;
   }
 
-  #ifdef AD7190_DEBUG
+  #ifdef AD7190_DEBUG_CALLS
     Serial.print("AD7190_setRegisterValue Add: 0x");
     Serial.print(writeCommand[0], HEX);
     Serial.print(" ");

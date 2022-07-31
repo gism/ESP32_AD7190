@@ -1,17 +1,22 @@
 
-// #define AD7190_DEBUG
-#define AD7190_DEBUG_2
+//    Hello together
+//    from http://www.github.com/gism
 
-static const int AD7190_SPI_CLK = 10000;   // SE TIENE QUE CAMBIAR A 1000000 // 10 MHz  
-static SPISettings AD7190_SPI_SETTINGS(AD7190_SPI_CLK, MSBFIRST, SPI_MODE3);
+//    Basic library for analog Devices AD7190
+//    AD7190: 4.8 kHz Ultra-Low Noise 24-Bit Sigma-Delta ADC with PGA
 
 
-/* Communications Register Bit Designations (AD7190_REG_COMM) */
-#define AD7190_COMM_WEN         (1 << 7)           // Write Enable. 
-#define AD7190_COMM_WRITE       (0 << 6)           // Write Operation.
-#define AD7190_COMM_READ        (1 << 6)           // Read Operation. 
-#define AD7190_COMM_ADDR(x)     (((x) & 0x7) << 3) // Register Address. 
-#define AD7190_COMM_CREAD       (1 << 2)           // Continuous Read of Data Register.
+#ifndef AD7190_H
+#define AD7190_H
+
+#include <Arduino.h>
+#include <SPI.h>
+
+#define AD7190_DOUT_TIMEOUT 100     //  TODO: This is arbitrary. Needs tuning
+
+                                    // Debug prints levels:
+//#define AD7190_DEBUG_CALLS          //  Prints string at begining of class function execution
+//#define AD7190_DEBUG_VERBOSE        //  Print some more information
 
 /* AD7190 Register Map */
 #define AD7190_REG_COMM         0 // Communications Register (WO, 8-bit) 
@@ -23,6 +28,22 @@ static SPISettings AD7190_SPI_SETTINGS(AD7190_SPI_CLK, MSBFIRST, SPI_MODE3);
 #define AD7190_REG_GPOCON       5 // GPOCON Register         (RW, 8-bit) 
 #define AD7190_REG_OFFSET       6 // Offset Register         (RW, 24-bit 
 #define AD7190_REG_FULLSCALE    7 // Full-Scale Register     (RW, 24-bit)
+
+/* Communications Register Bit Designations (AD7190_REG_COMM) */
+#define AD7190_COMM_WEN         (1 << 7)           // Write Enable. 
+#define AD7190_COMM_WRITE       (0 << 6)           // Write Operation.
+#define AD7190_COMM_READ        (1 << 6)           // Read Operation. 
+#define AD7190_COMM_ADDR(x)     (((x) & 0x7) << 3) // Register Address. 
+#define AD7190_COMM_CREAD       (1 << 2)           // Continuous Read of Data Register.
+
+/* Status Register Bit Designations (AD7190_REG_STAT) */
+#define AD7190_STAT_RDY         (1 << 7) // Ready.
+#define AD7190_STAT_ERR         (1 << 6) // ADC error bit.
+#define AD7190_STAT_NOREF       (1 << 5) // Error no external reference. 
+#define AD7190_STAT_PARITY      (1 << 4) // Parity check of the data register. 
+#define AD7190_STAT_CH2         (1 << 2) // Channel 2. 
+#define AD7190_STAT_CH1         (1 << 1) // Channel 1. 
+#define AD7190_STAT_CH0         (1 << 0) // Channel 0. 
 
 /* Mode Register Bit Designations (AD7190_REG_MODE) */
 #define AD7190_MODE_SEL(x)      (((x) & 0x7) << 21) // Operation Mode Select.
@@ -84,7 +105,7 @@ static SPISettings AD7190_SPI_SETTINGS(AD7190_SPI_CLK, MSBFIRST, SPI_MODE3);
 #define AD7190_CH_AIN4P_AINCOM     (1 << 7) // AIN4(+) - AINCOM
 
 /* Configuration Register: AD7190_CONF_GAIN(x) options */
-//                                             ADC Input Range (5 V Reference)
+                                // ADC Input Range (5 V Reference)
 #define AD7190_CONF_GAIN_1    0 // Gain 1    +-5 V
 #define AD7190_CONF_GAIN_8    3 // Gain 8    +-625 mV
 #define AD7190_CONF_GAIN_16   4 // Gain 16   +-312.5 mV
@@ -92,6 +113,12 @@ static SPISettings AD7190_SPI_SETTINGS(AD7190_SPI_CLK, MSBFIRST, SPI_MODE3);
 #define AD7190_CONF_GAIN_64   6 // Gain 64   +-78.125 mV
 #define AD7190_CONF_GAIN_128  7 // Gain 128  +-39.06 mV
 #define AD7190_CONF_GAIN_MASK 7 // To read gain config
+
+#define AD7190_BUFF_ACTIVE     1
+#define AD7190_BUFF_DISABLE    0
+
+#define AD7190_UNIPOLAR        1
+#define AD7190_BIPOLAR         0
 
 /* ID Register Bit Designations (AD7190_REG_ID) */
 #define ID_AD7190               0x4
@@ -105,3 +132,53 @@ static SPISettings AD7190_SPI_SETTINGS(AD7190_SPI_CLK, MSBFIRST, SPI_MODE3);
 #define AD7190_GPOCON_P2DAT     (1 << 2) // P2 state
 #define AD7190_GPOCON_P1DAT     (1 << 1) // P1 state
 #define AD7190_GPOCON_P0DAT     (1 << 0) // P0 state
+
+
+//     AD7190 Settings:
+//     SPI frequency: MAX AD7190 f is 5000000 = 5 MHz = (100 + 100) ns
+//     SPI_MODE3 <-- CPOL = 1 CPHA = 1
+
+static const int AD7190_SPI_CLK = 5000000;
+static SPISettings AD7190_SPI_SETTINGS(AD7190_SPI_CLK, MSBFIRST, SPI_MODE3);
+
+class AD7190 {
+private:
+    SPIClass* spiClass;
+    char deviceName[16];
+    uint8_t pin_rdy;
+
+    boolean activeState;
+    uint32_t spiErrorCount;
+        
+  #ifdef AD7190_DEBUG_VERBOSE
+    char* getAddressDebugString(uint8_t a); 
+  #endif
+
+  
+public:
+    AD7190(SPIClass* spiClass, uint8_t pin_rdy);
+    AD7190(SPIClass* spiClass, uint8_t pin_rdy, char* deviceName);
+    ~AD7190();
+
+    bool begin();
+    void reset();
+    bool checkId();
+
+    char* getDeviceName();
+    float getTemperature();
+    bool waitMisoGoLow(void);
+    
+    // Generic read/write functions:
+    uint32_t getRegisterValue(byte registerAddress, uint8_t bytesNumber);
+    void setRegisterValue(unsigned char registerAddress, uint32_t registerValue, unsigned char bytesNumber);
+
+    // Custom read/write functions:
+    uint8_t getStatusRegister();
+    uint32_t getDataRegister(uint8_t sampleNumber);           // Checks status register and increas error counter
+    uint32_t getDataRegisterAvg(uint8_t sampleNumber);        // Doesn't check status register, Doesn't increas error counter
+    void setConfigurationRegister(uint8_t channel, uint8_t buff, uint8_t polarity, uint8_t range);
+    
+};
+
+
+#endif
