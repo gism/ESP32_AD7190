@@ -136,7 +136,6 @@ bool AD7190::checkId(){
   return false;
 }
 
-
 float AD7190::getTemperature() {
 
 #ifdef AD7190_DEBUG_CALLS
@@ -195,7 +194,6 @@ void AD7190::setConfigurationRegister(uint8_t channel, uint8_t buff, uint8_t pol
   waitMisoGoLow();        // Whait MISO/RDY to go LOW
  
 }
-
 
 uint8_t AD7190::getStatusRegister() {
 
@@ -266,7 +264,6 @@ uint32_t AD7190::getDataRegisterAvg(uint8_t sampleNumber) {
 
 }
 
-
 uint32_t AD7190::getDataRegister(uint8_t sampleNumber) {
 
 #ifdef AD7190_DEBUG_CALLS
@@ -330,7 +327,6 @@ bool AD7190::waitMisoGoLow(void) {
   uint8_t rdyPin = digitalRead(this->pin_rdy);
   
   while (rdyPin && timeOutMilis) {
-    delay(1);
     rdyPin = digitalRead(this->pin_rdy);
     timeOutMilis--;
   }
@@ -442,6 +438,71 @@ void AD7190::setRegisterValue(unsigned char registerAddress, uint32_t registerVa
 
   digitalWrite(spiClass->pinSS(), HIGH);                   // Pull SS high to signify end of data transfer
   spiClass->endTransaction();
+}
+
+
+
+
+
+
+void AD7190::setModeContinuousRead(uint8_t commRegValue) {
+
+#ifdef AD7190_DEBUG_CALLS
+  Serial.println(F("AD7190.setModeContinuousRead()"));
+#endif
+
+  spiClass->beginTransaction(AD7190_SPI_SETTINGS);
+  digitalWrite(spiClass->pinSS(), LOW);             // Pull SS slow to prep other end for transfer
+
+  spiClass->transfer(commRegValue);                 // send the device the register you want to read:
+
+  spiClass->endTransaction();
+  
+}
+
+uint32_t AD7190::getDataContinuousRead(uint8_t bytesNumber) {
+    
+#ifdef AD7190_DEBUG_CALLS
+  Serial.println(F("AD7190.getDataContinuousRead()"));
+#endif
+
+  byte inByte = 0;           // incoming byte from the SPI
+  uint32_t result = 0;       // result to return
+
+  spiClass->beginTransaction(AD7190_SPI_SETTINGS);
+  result = spiClass->transfer(0x00);                // Send a value of 0 to read the first byte returned:
+
+  uint8_t i = bytesNumber;                          // decrement the number of bytes left to read:
+  while (i > 1) {                         // if you still have another byte to read:
+    result = result << 8;                           // shift the first byte left,
+    inByte = spiClass->transfer(0x00);              // then get the second byte:
+    result = result | inByte;                       // combine the byte you just got with the previous ones
+    i--;                                  // decrement the number of bytes left to read
+  }
+  
+  spiClass->endTransaction();
+
+#ifdef AD7190_DEBUG_VERBOSE                                   // This block is printing on Serial:
+  uint8_t b = 0;                                              // a string like: AD7190_Response:  [2|0xHH]  [1|0xHH]  [0|0xHH]
+  Serial.print(F("AD7190 Response:"));                          // this is only for debuging
+  for (int8_t j = bytesNumber - 1; j >= 0; j--) {    
+      b = (result >> (8 * i)) & 0xFF;
+      Serial.printf(" [%d|0x%02x] ", j, b);
+  }
+  Serial.println();
+#endif
+
+  return (result);
+}
+
+void AD7190::endModeContinuousRead() {
+  
+#ifdef AD7190_DEBUG_CALLS
+  Serial.println(F("AD7190.endModeContinuousRead()"));
+#endif
+
+  digitalWrite(spiClass->pinSS(), HIGH);            // Pull SS pin HIGH to signify end of data transfer
+  
 }
 
 #ifdef AD7190_DEBUG_VERBOSE

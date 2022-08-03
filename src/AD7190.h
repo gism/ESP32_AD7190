@@ -12,7 +12,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 
-#define AD7190_DOUT_TIMEOUT 100     //  TODO: This is arbitrary. Needs tuning
+#define AD7190_DOUT_TIMEOUT 50     //  TODO: This is arbitrary. Needs tuning
 
                                     // Debug prints levels:
 //#define AD7190_DEBUG_CALLS          //  Prints string at begining of class function execution
@@ -171,6 +171,10 @@ public:
     // Generic read/write functions:
     uint32_t getRegisterValue(byte registerAddress, uint8_t bytesNumber);
     void setRegisterValue(unsigned char registerAddress, uint32_t registerValue, unsigned char bytesNumber);
+
+    void setModeContinuousRead(uint8_t commRegValue);
+    void endModeContinuousRead();
+    uint32_t getDataContinuousRead(uint8_t bytesNumber);
 
     // Custom read/write functions:
     uint8_t getStatusRegister();
