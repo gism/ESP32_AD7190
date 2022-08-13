@@ -9,14 +9,14 @@
 #ifndef AD7190_H
 #define AD7190_H
 
+                                      // Debug prints levels:
+//#define AD7190_DEBUG_CALLS          //  Prints string at begining of class function execution
+//#define AD7190_DEBUG_VERBOSE        //  Print some more information
+
 #include <Arduino.h>
 #include <SPI.h>
 
-#define AD7190_DOUT_TIMEOUT 50     //  TODO: This is arbitrary. Needs tuning
-
-                                    // Debug prints levels:
-//#define AD7190_DEBUG_CALLS          //  Prints string at begining of class function execution
-//#define AD7190_DEBUG_VERBOSE        //  Print some more information
+#define AD7190_DOUT_TIMEOUT 5     //  TODO: This is arbitrary. Needs tuning
 
 /* AD7190 Register Map */
 #define AD7190_REG_COMM         0 // Communications Register (WO, 8-bit) 

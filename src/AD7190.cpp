@@ -143,14 +143,17 @@ float AD7190::getTemperature() {
 #endif
 
   setConfigurationRegister(AD7190_CH_TEMP_SENSOR, AD7190_BUFF_ACTIVE, AD7190_BIPOLAR, AD7190_CONF_GAIN_1);
+  delay(100);                 //  TODO: this is a workaround
  
   uint32_t command = 0x0;
   uint32_t regDataReturned = 0x0;
 
-  command = AD7190_MODE_SEL(AD7190_MODE_SINGLE) | AD7190_MODE_CLKSRC(AD7190_CLK_INT) | AD7190_MODE_RATE(AD7190_FILTER_RATE_1023);
+  command = AD7190_MODE_SEL(AD7190_MODE_SINGLE) | AD7190_MODE_CLKSRC(AD7190_CLK_INT) | AD7190_MODE_RATE(AD7190_FILTER_RATE_1);
   setRegisterValue(AD7190_REG_MODE, command, 3);
 
+  delay(100);             //  TODO: this is a workaround
   waitMisoGoLow();        // Whait MISO/RDY to go LOW
+  
   
   regDataReturned = getRegisterValue(AD7190_REG_DATA, 3);
 
