@@ -9,5 +9,11 @@
 // #define MAIN_DEBUG_VERBOSE        //  Print some more information
 #define MAIN_DEBUG_CONVERSION
 
+// #define WIFI_DEBUG_VERBOSE        //  Print some more information
+
+#define MAX_QUEUE_LENGTH               30
+#define MAX_MESSAGE_BYTES              64
+
+#define MEASURE_PIN 32
 
 #endif

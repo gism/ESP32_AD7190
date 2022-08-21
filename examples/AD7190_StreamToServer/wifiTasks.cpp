@@ -3,6 +3,7 @@
 WiFiManager wm;                   // global WifiManager instance
 WiFiClient wifiClient;
 
+
 const IPAddress serverIP(192, 168, 0, 14);    // Server IP
 uint16_t serverPort = 8000;                   // Server Port
 
@@ -65,7 +66,6 @@ void printWifiDebugInfo(){
   
 }
 
-
 bool connectServer() {
   
   Serial.print(F("Connecting socket server: IP: "));
@@ -83,64 +83,20 @@ bool connectServer() {
   return false;
 }
 
-
 bool serverIsConnected(){
   return wifiClient.connected();
 }
 
-bool sendInfoServer(){
-    
-    sprintf(bufferServer, "Counter from ESP: %d ticks\n", counter);
-    
-    int n = strlen(bufferServer);
-    //int ret = wifiClient.write(bufferServer, n);
-    int ret = wifiClient.print(bufferServer);
 
-    Serial.print("Send len=");
-    Serial.print(ret);
-    Serial.print(" - ");
-    Serial.print(bufferServer);
 
-    counter = counter + 1;
 
-    while (wifiClient.available())
-    {
+void getServerMessage(){
+  
+    while (wifiClient.available()) {
+      
       String line = wifiClient.readStringUntil('\n');
-      Serial.print("read data：");
+      Serial.print("Server data：");
       Serial.println(line);
+       
     }
-
-    return true;
-}
-
-
-bool streamAd7190DataMessageToServer(char* messageBlock) {
-
-
-    if (!messageBlock) {
-    #ifdef MAIN_DEBUG_VERBOSE
-      Serial.println(F("Error: streamAd7190DataMessageToServer, messageBlock is NULL"));
-    #endif
-      return false;
-    }
-    
-    int n = strlen(messageBlock);
-    //int ret = wifiClient.write(messageBlock, n);
-    int ret = wifiClient.print(messageBlock);
-
-    //#ifdef MAIN_DEBUG_VERBOSE
-    Serial.print("Send len=");
-    Serial.print(ret);
-    Serial.print(" - ");
-    Serial.print(messageBlock);
-    //#endif
-
-    while (wifiClient.available())
-    {
-      String line = wifiClient.readStringUntil('\n');
-      Serial.print("read data：");
-      Serial.println(line);
-    }
-
-    return true;
 }
