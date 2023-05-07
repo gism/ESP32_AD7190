@@ -4,11 +4,13 @@
 
 //    Basic library for analog Devices AD7190
 //    AD7190: 4.8 kHz Ultra-Low Noise 24-Bit Sigma-Delta ADC with PGA
-
+//
+//    Generic drivers from Analog Devices
+//    https://wiki.analog.com/_media/resources/tools-software/uc-drivers/renesas/ad7190_generic.zip
+//    Copy: .\Documentation\ad7190_generic\
 
 #ifndef AD7190_H
 #define AD7190_H
-
                                       // Debug prints levels:
 //#define AD7190_DEBUG_CALLS          //  Prints string at begining of class function execution
 //#define AD7190_DEBUG_VERBOSE        //  Print some more information
@@ -16,7 +18,10 @@
 #include <Arduino.h>
 #include <SPI.h>
 
-#define AD7190_DOUT_TIMEOUT 5     //  TODO: This is arbitrary. Needs tuning
+#define AD7190_DOUT_TIMEOUT 0xFFFFF     //  TODO: This is arbitrary. Copied from Analog Devices generic driver.
+
+#define AD7190_CS_CHANGE    1
+#define AD7190_CS_NO_CHANGE 0
 
 /* AD7190 Register Map */
 #define AD7190_REG_COMM         0 // Communications Register (WO, 8-bit) 
@@ -161,17 +166,27 @@ public:
     ~AD7190();
 
     bool begin();
+    
+    // Generic read/write functions:
+    uint32_t getRegisterValue(uint8_t registerAddress, uint8_t bytesNumber, uint8_t modifyCS);
+    void setRegisterValue(uint8_t registerAddress, uint32_t registerValue, uint8_t bytesNumber, uint8_t modifyCS);
+
+    inline void setCS();
+    inline void releaseCS();
+    
     void reset();
     bool checkId();
 
     char* getDeviceName();
     float getTemperature();
-    bool waitMisoGoLow(void);
-    
-    // Generic read/write functions:
-    uint32_t getRegisterValue(byte registerAddress, uint8_t bytesNumber);
-    void setRegisterValue(unsigned char registerAddress, uint32_t registerValue, unsigned char bytesNumber);
 
+    void setChannel(uint8_t channel);
+    void setConfigurationRegister(uint8_t channel, uint8_t buff, uint8_t polarity, uint8_t range);
+    void setPower(uint8_t pwrMode);
+    void calibrate(uint8_t calMode, uint8_t calChannel);
+    
+    bool waitRdyGoLow(void);
+    
     void setModeContinuousRead(uint8_t commRegValue);
     void endModeContinuousRead();
     uint32_t getDataContinuousRead(uint8_t bytesNumber);
@@ -180,7 +195,7 @@ public:
     uint8_t getStatusRegister();
     uint32_t getDataRegister(uint8_t sampleNumber);           // Checks status register and increas error counter
     uint32_t getDataRegisterAvg(uint8_t sampleNumber);        // Doesn't check status register, Doesn't increas error counter
-    void setConfigurationRegister(uint8_t channel, uint8_t buff, uint8_t polarity, uint8_t range);
+    
     
 };
 
