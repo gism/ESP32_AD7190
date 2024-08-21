@@ -14,6 +14,6 @@
 #define MAX_QUEUE_LENGTH               30
 #define MAX_MESSAGE_BYTES              64
 
-#define MEASURE_PIN 32
+#define MEASURE_PIN 21
 
 #endif

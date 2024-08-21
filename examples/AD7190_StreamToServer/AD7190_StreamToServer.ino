@@ -14,8 +14,16 @@
 //           CS    --  GPIO15
 //           VIN   --  3V3
 
+//    Check python_server_demo.py and run on Python 3.XX
+//    tested on Python 3.12
+//
+//    CUSTOMIZATION REQUIRED:
+//    Open wifiTesks.cpp and change below line to match local IP where python script is running
+//    const IPAddress serverIP(192, 168, 0, 15);    // Server IP
+//    To know your local IP address run ipconfig in cmd (in windows) or ifconfig (in linux)
+
 #include <SPI.h>
-#include "AD7190.h"
+#include <AD7190.h>
 
 #include "config.h"
 #include "espInfo.h"
@@ -30,6 +38,8 @@ uint32_t rawAd7190Data = 0;
 uint32_t AD7190_rawZero = 0x7FD8FF;        // Arbitrary number based on my setup
 bool timeout = false;
 uint32_t sampleCount = 0;
+
+bool measurementPin = false;
 
 bool initAd7180(){
 
@@ -71,8 +81,14 @@ bool initAd7180(){
 
 void configureAd7190ContinuousRead(){
   
-  // Set GPIOS required for development board:
-  uint8_t regGPIOSettings = AD7190_GPOCON_GP32EN;                                         //  Set excitation source  (P3 to low is 5V exitation on)
+  // Set excitation source  (P3 to low is 5V exitation on)
+  // Activate P2 and P3
+  // Close BPDSW switch
+  uint8_t regGPIOSettings = (AD7190_GPOCON_BPDSW | 
+                             AD7190_GPOCON_GP32EN |
+                             AD7190_GPOCON_P2DAT | 
+                             AD7190_GPOCON_P3DAT);
+
   ad7190->setRegisterValue(AD7190_REG_GPOCON, regGPIOSettings, 1, AD7190_CS_CHANGE);
 
   // Set AD7190 configuration
@@ -248,7 +264,7 @@ void initAd7190Tasks() {
     1);                                             /* Core where the task should run */
 
 #ifdef MAIN_DEBUG_VERBOSE
-  Serial.print(F("Task created: taskProcessAd7190Data"));
+  Serial.print(F("Task created: taskFetchAd7190Data"));
 #endif
 
   return;
@@ -266,8 +282,8 @@ void setup() {
   initAd7180();                       //  Initialize AD7190
   configureAd7190ContinuousRead();    //  Set AD7190 to Continuous Read Mode
 
-  configureWifi();              //  Launches WifiManager with captive portal
-  connectServer();              //  Connect to a hardcoded IP to stream AD7190 data
+  configureWifi();                    //  Launches WifiManager with captive portal
+  connectServer();                    //  Connect to a hardcoded IP to stream AD7190 data
 
   initAd7190Tasks(); 
   

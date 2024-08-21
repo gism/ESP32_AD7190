@@ -26,7 +26,8 @@ bool measurementPin = false;
 
 AD7190* ad7190 = NULL;
 
-uint32_t rawAd7190Data = 0;
+uint32_t rawAd7190Data_Channel1 = 0;
+uint32_t rawAd7190Data_Channel2 = 0;
 
 bool initAd7190(){
 
@@ -122,13 +123,54 @@ void loop() {
   // this is indicated by asserting !RDY (CIPO/MISO) pin low
   ad7190->waitRdyGoLow();
 
-  uint32_t rawAd7190Data = ad7190->getRegisterValue(AD7190_REG_DATA, 3, AD7190_CS_CHANGE);
+  // Read channel 1 result
+  rawAd7190Data_Channel1 = ad7190->getRegisterValue(AD7190_REG_DATA, 3, AD7190_CS_CHANGE);
 
-  // Toggle one GPIO each loop
+
+  // Set AD7190 configuration
+  // Channel #2 (AIN1 - AIN2)
+  // Gain 128
+  // No Buffer
+  // Bipolar read
+  // Chop active (ADC offset drift minimized)
+  regConfigSettings = (AD7190_CONF_CHOP | 
+                       //AD7190_CONF_REFSEL |
+                       //AD7190_CONF_BURN |
+                       //AD7190_CONF_BUF |
+                       AD7190_CONF_CHAN(AD7190_CH_AIN1P_AIN2M) | 
+                       AD7190_CONF_GAIN(AD7190_CONF_GAIN_128));
+
+  ad7190->setRegisterValue(AD7190_REG_CONF, regConfigSettings, 3, AD7190_CS_CHANGE);
+  
+  // Set AD7190 mode
+  // Single conversion mode
+  // No status register attached
+  // Internal 4.92 MHz clock (Pin MCLK2 is tristated)
+  // SINC4 fitler (default)
+  // Filter: 1
+  regModeSettings = (AD7190_MODE_SEL(AD7190_MODE_SINGLE) | 
+                     AD7190_MODE_CLKSRC(AD7190_CLK_INT) | 
+                     //AD7190_MODE_CLKSRC(AD7190_CLK_EXT_MCLK1_2) | 
+                     AD7190_MODE_RATE(AD7190_FILTER_RATE_1));
+
+  ad7190->setRegisterValue(AD7190_REG_MODE, regModeSettings, 3, AD7190_CS_CHANGE);
+
+  // Wait AD7190 Convention to finish
+  // this is indicated by asserting !RDY (CIPO/MISO) pin low
+  ad7190->waitRdyGoLow();
+
+  // Read channel 2 result
+  rawAd7190Data_Channel2 = ad7190->getRegisterValue(AD7190_REG_DATA, 3, AD7190_CS_CHANGE);
+
+
+  // Toggle one GPIO each loop (2x channels measured)
   digitalWrite(MEASURE_PIN, measurementPin);     //  TICK, TACK each measurement
   measurementPin != measurementPin;
 
   #ifdef MAIN_DEBUG_CONVERSION
-	  Serial.println(rawAd7190Data, HEX);
-  #endif
+	  Serial.print(rawAd7190Data_Channel1, HEX);
+    Serial.print('\t');
+    Serial.println(rawAd7190Data_Channel2, HEX);
+  #endif.
+
 }

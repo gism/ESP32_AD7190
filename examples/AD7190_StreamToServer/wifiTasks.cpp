@@ -4,7 +4,7 @@ WiFiManager wm;                   // global WifiManager instance
 WiFiClient wifiClient;
 
 
-const IPAddress serverIP(192, 168, 0, 14);    // Server IP
+const IPAddress serverIP(192, 168, 0, 15);    // Server IP (README! This link is to be modified to your server local IP)
 uint16_t serverPort = 8000;                   // Server Port
 
 uint32_t counter = 0;
@@ -86,9 +86,6 @@ bool connectServer() {
 bool serverIsConnected(){
   return wifiClient.connected();
 }
-
-
-
 
 void getServerMessage(){
   
